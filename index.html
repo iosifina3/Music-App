@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Moonside</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0C12">
+<style>
+/* ---------- Moonside · liquid glass tokens ----------
+   Frosted translucent layers floating over a deep night
+   backdrop, capsule controls, soft specular top edges.
+   Native iOS system type for a truly at-home feel.      */
+:root{
+  --night:#0A0C12;
+  --moon:#9BA8FF;                       /* periwinkle accent */
+  --moon-soft:rgba(155,168,255,.28);
+  --text:#F4F3EF;
+  --text-dim:rgba(235,236,245,.56);
+  --danger:#FF8A96;
+  --glass:rgba(255,255,255,.075);        /* base material */
+  --glass-strong:rgba(255,255,255,.12);
+  --glass-edge:rgba(255,255,255,.16);    /* hairline border */
+  --spec:inset 0 1px 0 rgba(255,255,255,.22);  /* specular top light */
+  --blur:blur(26px) saturate(170%);
+  --radius:18px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--night);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;
+}
+/* ambient light the glass can refract */
+body::before,body::after{
+  content:"";position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(70px)
+}
+body::before{width:70vmax;height:70vmax;top:-30vmax;left:-20vmax;
+  background:radial-gradient(circle,rgba(120,134,255,.20),transparent 65%)}
+body::after{width:60vmax;height:60vmax;bottom:-25vmax;right:-20vmax;
+  background:radial-gradient(circle,rgba(94,214,214,.12),transparent 65%)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,textarea,select{font:inherit;color:var(--text)}
+::placeholder{color:var(--text-dim)}
+
+/* ---------- reusable glass ---------- */
+.glass{
+  background:var(--glass);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-edge);
+  box-shadow:var(--spec),0 10px 30px rgba(0,0,0,.35);
+}
+
+/* ---------- layout ---------- */
+#app{display:flex;flex-direction:column;height:100dvh;position:relative;z-index:1}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(var(--safe-top) + 12px) 16px 190px}
+@media (min-width:700px){ main{max-width:640px;margin:0 auto;width:100%} }
+
+h1.wordmark{font-size:34px;font-weight:800;letter-spacing:-.03em;margin:6px 0 14px}
+h1.wordmark .dot{color:var(--moon)}
+.subhead{color:var(--text-dim);font-size:14px;margin:-8px 0 16px}
+
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.btn{
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-edge);box-shadow:var(--spec);
+  border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;color:var(--text)
+}
+.btn.primary{background:linear-gradient(180deg,rgba(155,168,255,.55),rgba(155,168,255,.35));
+  border-color:rgba(155,168,255,.6);color:#fff}
+.btn.danger{color:var(--danger)}
+.btn:active{transform:scale(.97)}
+.sortsel{
+  appearance:none;-webkit-appearance:none;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-edge);box-shadow:var(--spec);
+  border-radius:999px;padding:9px 14px;font-size:14px;font-weight:600;outline:none
+}
+.sortsel option{color:#111}
+
+.search{
+  width:100%;border-radius:14px;padding:11px 15px;margin-bottom:14px;outline:none;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-edge);box-shadow:var(--spec)
+}
+.search:focus{border-color:var(--moon-soft)}
+
+/* ---------- song rows ---------- */
+.row{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:14px}
+.row:active{background:var(--glass)}
+.row .art{
+  width:52px;height:52px;border-radius:12px;flex:none;object-fit:cover;
+  background:var(--glass-strong);border:1px solid var(--glass-edge);
+  display:flex;align-items:center;justify-content:center;color:var(--moon);font-size:20px
+}
+.row .meta{flex:1;min-width:0}
+.row .t{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{color:var(--text-dim);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.row.playing .t{color:var(--moon)}
+.row .more{padding:10px;color:var(--text-dim);font-size:18px;flex:none}
+
+.empty{text-align:center;color:var(--text-dim);padding:56px 24px;line-height:1.65;font-size:15px}
+.empty .big{font-size:40px;display:block;margin-bottom:12px}
+
+/* ---------- playlists ---------- */
+.pl-card{display:flex;align-items:center;gap:12px;border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.pl-card .t{font-weight:700}
+.pl-card .s{color:var(--text-dim);font-size:13px;margin-top:2px}
+
+/* ---------- floating glass dock ---------- */
+#dock{
+  position:fixed;left:12px;right:12px;bottom:calc(var(--safe-bottom) + 10px);z-index:20;
+  display:flex;flex-direction:column;gap:8px;max-width:640px;margin:0 auto
+}
+#mini{
+  display:none;align-items:center;gap:12px;padding:8px 12px;border-radius:22px
+}
+#mini.show{display:flex}
+#mini img,#mini .noart{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none;
+  background:var(--glass-strong);display:flex;align-items:center;justify-content:center;color:var(--moon)}
+#mini .meta{flex:1;min-width:0}
+#mini .t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mini .s{font-size:12px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mini button{font-size:22px;padding:8px}
+#tabs{display:flex;border-radius:26px;overflow:hidden}
+#tabs button{
+  flex:1;padding:11px 0 9px;color:var(--text-dim);font-size:11px;font-weight:600;
+  display:flex;flex-direction:column;align-items:center;gap:3px
+}
+#tabs button .ico{font-size:20px}
+#tabs button.on{color:var(--moon)}
+
+/* ---------- now playing ---------- */
+#now{
+  position:fixed;inset:0;z-index:40;background:rgba(10,12,18,.72);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  transform:translateY(100%);transition:transform .32s cubic-bezier(.3,.9,.3,1);
+  display:flex;flex-direction:column;padding:calc(var(--safe-top) + 10px) 22px calc(var(--safe-bottom) + 18px);
+  overflow:hidden
+}
+#now.open{transform:translateY(0)}
+#now .glow{
+  position:absolute;top:-20%;left:50%;width:130%;aspect-ratio:1;transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(155,168,255,.20) 0%,transparent 60%);
+  pointer-events:none;filter:blur(24px)
+}
+#now header{display:flex;justify-content:space-between;align-items:center;position:relative}
+#now header button{font-size:15px;color:var(--text-dim);padding:8px;font-weight:600}
+#np-body{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+#np-art-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:12px 0}
+#np-art,#np-noart{
+  width:min(78vw,340px);aspect-ratio:1;border-radius:24px;object-fit:cover;
+  border:1px solid var(--glass-edge);
+  box-shadow:var(--spec),0 24px 60px rgba(0,0,0,.55)
+}
+#np-noart{background:var(--glass);display:flex;align-items:center;justify-content:center;font-size:64px;color:var(--moon)}
+#np-title{font-size:21px;font-weight:800;letter-spacing:-.01em;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#np-artist{color:var(--moon);text-align:center;font-size:15px;margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#seek{width:100%;margin:18px 0 2px;-webkit-appearance:none;background:transparent;height:24px}
+#seek::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:var(--glass-strong)}
+#seek::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--text);margin-top:-5.5px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.times{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.controls{display:flex;align-items:center;justify-content:center;gap:26px;margin:14px 0 4px}
+.controls button{font-size:28px}
+.controls .play{
+  font-size:30px;width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(230,232,245,.9));
+  color:#0B0D14;display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--spec),0 10px 26px rgba(0,0,0,.45)
+}
+.controls .side{color:var(--text-dim);font-size:20px}
+.controls .side.on{color:var(--moon)}
+#np-extra{display:flex;justify-content:center;gap:14px;margin-top:8px;flex-wrap:wrap}
+#np-extra button{color:var(--text-dim);font-size:14px;font-weight:600;padding:8px 12px;
+  border-radius:999px;background:var(--glass);border:1px solid var(--glass-edge);box-shadow:var(--spec)}
+#np-extra button.on{color:var(--moon);border-color:var(--moon-soft)}
+
+/* ---------- lyrics panel ---------- */
+#lyrics-panel{
+  position:absolute;inset:0;border-radius:22px 22px 0 0;
+  background:rgba(12,14,22,.78);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-edge);box-shadow:var(--spec);
+  transform:translateY(102%);transition:transform .3s ease;display:flex;flex-direction:column
+}
+#lyrics-panel.open{transform:translateY(0)}
+#lyrics-panel .lp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 12px;gap:8px;flex-wrap:wrap}
+#lyrics-panel .lp-head .t{font-weight:800;font-size:17px}
+#lyrics-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px 40px}
+.lyr-pair{margin-bottom:22px}
+.lyr-line{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
+.lyr-trans{font-size:15px;color:var(--moon);margin-top:4px;line-height:1.4;font-weight:500}
+.lyr-hint{color:var(--text-dim);font-size:14px;line-height:1.6;padding:20px 4px}
+
+/* ---------- sheets ---------- */
+.sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;opacity:0;pointer-events:none;transition:opacity .2s}
+.sheet-backdrop.open{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:51;
+  background:rgba(20,23,34,.82);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-edge);border-bottom:none;box-shadow:var(--spec);
+  border-radius:24px 24px 0 0;transform:translateY(105%);transition:transform .28s cubic-bezier(.3,.9,.3,1);
+  max-height:88dvh;display:flex;flex-direction:column;padding:10px 18px calc(var(--safe-bottom) + 16px)
+}
+.sheet.open{transform:translateY(0)}
+.sheet .grab{width:38px;height:5px;border-radius:3px;background:var(--glass-edge);margin:4px auto 12px}
+.sheet .sc{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet h2{font-size:19px;font-weight:800;margin-bottom:14px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.field input[type=text],.field textarea{
+  width:100%;background:rgba(0,0,0,.28);border:1px solid var(--glass-edge);border-radius:12px;
+  padding:10px 12px;outline:none
+}
+.field textarea{min-height:110px;resize:vertical;line-height:1.5}
+.field input:focus,.field textarea:focus{border-color:var(--moon-soft)}
+.sheet .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.sheet .actions .btn{flex:1;text-align:center;min-width:120px}
+.art-edit{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.art-edit img,.art-edit .noart{width:84px;height:84px;border-radius:14px;object-fit:cover;
+  background:rgba(0,0,0,.28);border:1px solid var(--glass-edge);display:flex;align-items:center;
+  justify-content:center;font-size:30px;color:var(--moon)}
+.list-pick .row{padding:12px 6px}
+.timer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.timer-grid .btn{text-align:center;padding:14px}
+.timer-grid .btn.on{border-color:var(--moon);color:var(--moon)}
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--safe-bottom) + 150px);transform:translateX(-50%) translateY(20px);
+  background:rgba(30,34,50,.85);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--moon-soft);box-shadow:var(--spec);color:var(--text);
+  padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;z-index:99;
+  opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<main id="main"></main>
+
+<!-- floating glass dock: mini player + tab capsule -->
+<div id="dock">
+  <div id="mini" class="glass" onclick="openNow()">
+    <span id="mini-art-slot"><span class="noart">♪</span></span>
+    <div class="meta"><div class="t" id="mini-t">—</div><div class="s" id="mini-s">—</div></div>
+    <button onclick="event.stopPropagation();togglePlay()" id="mini-play" aria-label="Play or pause">▶</button>
+    <button onclick="event.stopPropagation();nextSong()" aria-label="Next song">⏭</button>
+  </div>
+  <nav id="tabs" class="glass">
+    <button id="tab-library" class="on" onclick="showView('library')"><span class="ico">♫</span>Library</button>
+    <button id="tab-playlists" onclick="showView('playlists')"><span class="ico">≣</span>Playlists</button>
+    <button id="tab-about" onclick="showView('about')"><span class="ico">☾</span>Guide</button>
+  </nav>
+</div>
+
+<!-- full-screen now playing -->
+<section id="now" aria-label="Now playing">
+  <div class="glow"></div>
+  <header>
+    <button onclick="closeNow()">⌄ Close</button>
+    <button onclick="openDetailsForCurrent()">Edit ✎</button>
+  </header>
+  <div id="np-body">
+    <div id="np-art-wrap"><span id="np-art-slot"><div id="np-noart">♪</div></span></div>
+    <div id="np-title">—</div>
+    <div id="np-artist">—</div>
+    <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Seek">
+    <div class="times"><span id="t-cur">0:00</span><span id="t-dur">0:00</span></div>
+    <div class="controls">
+      <button class="side" id="btn-shuffle" onclick="toggleShuffle()" aria-label="Shuffle">⤨</button>
+      <button onclick="prevSong()" aria-label="Previous">⏮</button>
+      <button class="play" id="btn-play" onclick="togglePlay()" aria-label="Play or pause">▶</button>
+      <button onclick="nextSong()" aria-label="Next">⏭</button>
+      <button class="side" id="btn-repeat" onclick="cycleRepeat()" aria-label="Repeat">↻</button>
+    </div>
+    <div id="np-extra">
+      <button onclick="openLyrics()">Lyrics ✧</button>
+      <button id="btn-timer" onclick="openTimerSheet()">Timer ☾</button>
+      <button onclick="openAddToPlaylist(state.currentId)">+ Playlist</button>
+    </div>
+    <div id="lyrics-panel">
+      <div class="lp-head">
+        <span class="t">Lyrics</span>
+        <span>
+          <button class="btn" id="btn-trans-toggle" onclick="toggleTranslation()">Show translation</button>
+          <button class="btn" onclick="closeLyrics()">Close</button>
+        </span>
+      </div>
+      <div id="lyrics-scroll"></div>
+    </div>
+  </div>
+</section>
+
+<!-- song details sheet -->
+<div class="sheet-backdrop" id="backdrop" onclick="closeAllSheets()"></div>
+<div class="sheet" id="sheet-details">
+  <div class="grab"></div>
+  <div class="sc">
+    <h2>Song details</h2>
+    <div class="art-edit">
+      <span id="ed-art-slot"><span class="noart">♪</span></span>
+      <div>
+        <button class="btn" onclick="document.getElementById('art-input').click()">Choose photo</button>
+        <input type="file" id="art-input" accept="image/*" hidden>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Add your own cover for songs<br>that came without one.</div>
+      </div>
+    </div>
+    <div class="field"><label for="ed-title">Title</label><input type="text" id="ed-title"></div>
+    <div class="field"><label for="ed-artist">Artist</label><input type="text" id="ed-artist"></div>
+    <div class="field"><label for="ed-album">Album</label><input type="text" id="ed-album"></div>
+    <div class="field">
+      <label for="ed-lyrics">Lyrics (one line per line)</label>
+      <textarea id="ed-lyrics" placeholder="Paste the song's lyrics here…"></textarea>
+    </div>
+    <div class="field">
+      <label for="ed-trans">Translation (matching lines — English ↔ Spanish or any pair)</label>
+      <textarea id="ed-trans" placeholder="Paste the translated lyrics here, line by line, so each line sits under the original…"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn primary" onclick="saveDetails()">Save</button>
+      <button class="btn" onclick="openAddToPlaylist(editingId)">+ Playlist</button>
+      <button class="btn danger" onclick="deleteSong()">Delete song</button>
+    </div>
+  </div>
+</div>
+
+<!-- add-to-playlist sheet -->
+<div class="sheet" id="sheet-pick">
+  <div class="grab"></div>
+  <div class="sc">
+    <h2>Add to playlist</h2>
+    <div class="list-pick" id="pick-list"></div>
+    <div class="actions"><button class="btn" onclick="newPlaylistThenAdd()">＋ New playlist</button></div>
+  </div>
+</div>
+
+<!-- sleep timer sheet -->
+<div class="sheet" id="sheet-timer">
+  <div class="grab"></div>
+  <div class="sc">
+    <h2>Sleep timer</h2>
+    <div class="timer-grid" id="timer-grid"></div>
+    <div style="color:var(--text-dim);font-size:13px;margin-top:14px;line-height:1.5">
+      Music pauses gently when the timer ends. “End of song” lets the current track finish first.
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="audio/*,.mp3,.flac,.m4a,.wav,.aac,.aiff,.ogg" multiple hidden>
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* =====================================================
+   Moonside — a personal, fully offline music player PWA.
+   Your songs live in IndexedDB on the device, entirely
+   separate from the app's files — so updating the app
+   NEVER removes your music, lyrics, artwork or playlists.
+   ===================================================== */
+
+// ---------- tiny IndexedDB wrapper ----------
+const DB_NAME = "moonside", DB_VER = 1;   // keep these stable across app updates
+let db;
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains("songs")) d.createObjectStore("songs", { keyPath: "id" });
+      if (!d.objectStoreNames.contains("blobs")) d.createObjectStore("blobs", { keyPath: "id" });
+      if (!d.objectStoreNames.contains("playlists")) d.createObjectStore("playlists", { keyPath: "id" });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(store, mode, fn){
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, mode);
+    fn(t.objectStore(store));
+    t.oncomplete = () => res();
+    t.onerror = () => rej(t.error);
+  });
+}
+const putSong = (s) => tx("songs", "readwrite", (st) => st.put(s));
+const delSongRec = (id) => tx("songs", "readwrite", (st) => st.delete(id));
+const putBlob = (id, blob) => tx("blobs", "readwrite", (st) => st.put({ id, blob }));
+const delBlob = (id) => tx("blobs", "readwrite", (st) => st.delete(id));
+function getBlob(id){
+  return new Promise((res, rej) => {
+    const t = db.transaction("blobs").objectStore("blobs").get(id);
+    t.onsuccess = () => res(t.result ? t.result.blob : null);
+    t.onerror = () => rej(t.error);
+  });
+}
+function getAll(store){
+  return new Promise((res, rej) => {
+    const t = db.transaction(store).objectStore(store).getAll();
+    t.onsuccess = () => res(t.result || []);
+    t.onerror = () => rej(t.error);
+  });
+}
+const putPlaylist = (p) => tx("playlists", "readwrite", (st) => st.put(p));
+const delPlaylist = (id) => tx("playlists", "readwrite", (st) => st.delete(id));
+
+// ---------- state ----------
+const state = {
+  songs: [],
+  playlists: [],           // [{id,name,songIds:[],sort:'custom'}]
+  view: "library",
+  openPlaylistId: null,
+  queue: [], qIndex: -1,
+  currentId: null,
+  shuffle: false,
+  repeat: "off",           // off | all | one
+  showTrans: true,
+  search: "",
+  librarySort: "title",    // title | artist | added
+  sleep: { minutes: null, endAt: null, afterSong: false }
+};
+const audio = new Audio();
+audio.preload = "auto";
+let currentURL = null;
+let editingId = null;
+const artURLCache = new Map();
+
+// ---------- helpers ----------
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const fmt = (s) => { if (!isFinite(s)) return "0:00"; s = Math.floor(s); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+const esc = (t) => (t || "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200);
+}
+function artURL(song){
+  if (!song || !song.artBlob) return null;
+  if (!artURLCache.has(song.id)) artURLCache.set(song.id, URL.createObjectURL(song.artBlob));
+  return artURLCache.get(song.id);
+}
+function songById(id){ return state.songs.find((s) => s.id === id); }
+function sortSongs(list, mode){
+  const l = [...list];
+  if (mode === "title") l.sort((a,b) => a.title.localeCompare(b.title));
+  else if (mode === "artist") l.sort((a,b) => (a.artist+a.title).localeCompare(b.artist+b.title));
+  else if (mode === "added") l.sort((a,b) => b.added - a.added);
+  return l; // "custom" = leave as-is (playlist order)
+}
+
+// ---------- metadata parsing (ID3v2 for MP3, FLAC blocks) ----------
+function parseSynchsafe(b, i){ return (b[i]<<21)|(b[i+1]<<14)|(b[i+2]<<7)|b[i+3]; }
+function decodeText(bytes, enc){
+  try{
+    if (enc === 0) return new TextDecoder("latin1").decode(bytes);
+    if (enc === 1) return new TextDecoder("utf-16").decode(bytes);
+    if (enc === 2) return new TextDecoder("utf-16be").decode(bytes);
+    return new TextDecoder("utf-8").decode(bytes);
+  }catch{ return ""; }
+}
+function parseID3(buf){
+  const b = new Uint8Array(buf);
+  const out = {};
+  if (b.length < 10 || b[0] !== 0x49 || b[1] !== 0x44 || b[2] !== 0x33) return out;
+  const ver = b[3];
+  const tagSize = parseSynchsafe(b, 6) + 10;
+  let i = 10;
+  if (b[5] & 0x40) i += parseSynchsafe(b, 10) + 4;
+  while (i + 10 < Math.min(tagSize, b.length)) {
+    const idStr = String.fromCharCode(b[i], b[i+1], b[i+2], b[i+3]);
+    if (!/^[A-Z0-9]{4}$/.test(idStr)) break;
+    const size = ver === 4 ? parseSynchsafe(b, i+4)
+      : (b[i+4]<<24)|(b[i+5]<<16)|(b[i+6]<<8)|b[i+7];
+    if (size <= 0 || i + 10 + size > b.length) break;
+    const body = b.subarray(i + 10, i + 10 + size);
+    if (idStr === "TIT2" || idStr === "TPE1" || idStr === "TALB") {
+      const txt = decodeText(body.subarray(1), body[0]).replace(/\0+$/,"").trim();
+      if (idStr === "TIT2") out.title = txt;
+      if (idStr === "TPE1") out.artist = txt;
+      if (idStr === "TALB") out.album = txt;
+    } else if (idStr === "APIC" && !out.art) {
+      const enc = body[0];
+      let p = 1;
+      while (p < body.length && body[p] !== 0) p++;
+      const mime = new TextDecoder("latin1").decode(body.subarray(1, p)) || "image/jpeg";
+      p += 1; p += 1;
+      if (enc === 1 || enc === 2) {
+        while (p + 1 < body.length && !(body[p] === 0 && body[p+1] === 0)) p += 2;
+        p += 2;
+      } else {
+        while (p < body.length && body[p] !== 0) p++;
+        p += 1;
+      }
+      if (p < body.length) out.art = new Blob([body.subarray(p)], { type: mime });
+    }
+    i += 10 + size;
+  }
+  return out;
+}
+function parseFLAC(buf){
+  const b = new Uint8Array(buf);
+  const out = {};
+  if (b.length < 8 || String.fromCharCode(b[0],b[1],b[2],b[3]) !== "fLaC") return out;
+  let i = 4;
+  const u32le = (o) => b[o] | (b[o+1]<<8) | (b[o+2]<<16) | (b[o+3]<<24);
+  const u32be = (o) => (b[o]<<24) | (b[o+1]<<16) | (b[o+2]<<8) | b[o+3];
+  while (i + 4 <= b.length) {
+    const last = b[i] & 0x80, type = b[i] & 0x7f;
+    const size = (b[i+1]<<16) | (b[i+2]<<8) | b[i+3];
+    const start = i + 4;
+    if (start + size > b.length) break;
+    if (type === 4) {
+      let p = start;
+      const vlen = u32le(p); p += 4 + vlen;
+      const count = u32le(p); p += 4;
+      const td = new TextDecoder("utf-8");
+      for (let c = 0; c < count && p + 4 <= start + size; c++) {
+        const len = u32le(p); p += 4;
+        const kv = td.decode(b.subarray(p, p + len)); p += len;
+        const eq = kv.indexOf("=");
+        if (eq > 0) {
+          const k = kv.slice(0, eq).toUpperCase(), v = kv.slice(eq + 1).trim();
+          if (k === "TITLE") out.title = v;
+          if (k === "ARTIST") out.artist = v;
+          if (k === "ALBUM") out.album = v;
+        }
+      }
+    } else if (type === 6 && !out.art) {
+      let p = start + 4;
+      const mlen = u32be(p); p += 4;
+      const mime = new TextDecoder("latin1").decode(b.subarray(p, p + mlen)) || "image/jpeg";
+      p += mlen;
+      const dlen = u32be(p); p += 4 + dlen;
+      p += 16;
+      const plen = u32be(p); p += 4;
+      if (p + plen <= start + size) out.art = new Blob([b.subarray(p, p + plen)], { type: mime });
+    }
+    i = start + size;
+    if (last) break;
+  }
+  return out;
+}
+
+// ---------- importing ----------
+async function importFiles(files){
+  if (!files || !files.length) return;
+  toast("Importing " + files.length + " file" + (files.length > 1 ? "s" : "") + "…");
+  let ok = 0;
+  for (const f of files) {
+    try {
+      const head = await f.slice(0, 512 * 1024).arrayBuffer();
+      let meta = parseID3(head);
+      if (!meta.title && !meta.art) { const fl = parseFLAC(head); meta = { ...fl, ...meta, art: meta.art || fl.art }; }
+      const nameGuess = f.name.replace(/\.[^.]+$/,"").replace(/^\d+[\s.\-_]+/,"").trim();
+      const song = {
+        id: uid(),
+        title: meta.title || nameGuess || "Untitled",
+        artist: meta.artist || "Unknown artist",
+        album: meta.album || "",
+        artBlob: meta.art || null,
+        lyrics: "", trans: "",
+        added: Date.now()
+      };
+      await putBlob(song.id, f);
+      await putSong(song);
+      state.songs.push(song);
+      ok++;
+    } catch (e) { console.warn("import failed", f.name, e); }
+  }
+  render();
+  toast(ok + " song" + (ok === 1 ? "" : "s") + " added — stored safely, plays offline");
+}
+document.getElementById("file-input").addEventListener("change", (e) => {
+  importFiles([...e.target.files]); e.target.value = "";
+});
+
+// ---------- playback ----------
+async function playSong(id, queue){
+  const song = songById(id); if (!song) return;
+  if (queue) { state.queue = queue; state.qIndex = queue.indexOf(id); }
+  state.currentId = id;
+  const blob = await getBlob(id);
+  if (!blob) { toast("Audio file missing"); return; }
+  if (currentURL) URL.revokeObjectURL(currentURL);
+  currentURL = URL.createObjectURL(blob);
+  audio.src = currentURL;
+  try { await audio.play(); } catch (e) { console.warn(e); }
+  updateNowUI(); updateMediaSession(); renderMain();
+}
+function togglePlay(){
+  if (!state.currentId) {
+    const list = sortSongs(filteredSongs(), state.librarySort);
+    if (list[0]) playSong(list[0].id, list.map((s) => s.id));
+    return;
+  }
+  if (audio.paused) audio.play(); else audio.pause();
+}
+function nextSong(){
+  if (!state.queue.length) return;
+  if (state.shuffle) { state.qIndex = Math.floor(Math.random() * state.queue.length); }
+  else {
+    state.qIndex++;
+    if (state.qIndex >= state.queue.length) {
+      if (state.repeat === "all") state.qIndex = 0;
+      else { state.qIndex = state.queue.length - 1; audio.pause(); return; }
+    }
+  }
+  playSong(state.queue[state.qIndex]);
+}
+function prevSong(){
+  if (audio.currentTime > 4) { audio.currentTime = 0; return; }
+  if (!state.queue.length) return;
+  state.qIndex = Math.max(0, state.qIndex - 1);
+  playSong(state.queue[state.qIndex]);
+}
+function toggleShuffle(){ state.shuffle = !state.shuffle; updateNowUI(); }
+function cycleRepeat(){
+  state.repeat = state.repeat === "off" ? "all" : state.repeat === "all" ? "one" : "off";
+  updateNowUI();
+}
+audio.addEventListener("ended", () => {
+  if (state.sleep.afterSong) { clearSleep(); toast("Sleep timer — goodnight ☾"); updateNowUI(); return; }
+  if (state.repeat === "one") { audio.currentTime = 0; audio.play(); } else nextSong();
+});
+audio.addEventListener("play", updatePlayIcons);
+audio.addEventListener("pause", updatePlayIcons);
+audio.addEventListener("timeupdate", () => {
+  const seek = document.getElementById("seek");
+  if (!seek._drag && audio.duration) seek.value = (audio.currentTime / audio.duration) * 100;
+  document.getElementById("t-cur").textContent = fmt(audio.currentTime);
+  document.getElementById("t-dur").textContent = fmt(audio.duration);
+});
+const seekEl = document.getElementById("seek");
+seekEl.addEventListener("input", () => { seekEl._drag = true; });
+seekEl.addEventListener("change", () => {
+  if (audio.duration) audio.currentTime = (seekEl.value / 100) * audio.duration;
+  seekEl._drag = false;
+});
+function updateMediaSession(){
+  if (!("mediaSession" in navigator)) return;
+  const s = songById(state.currentId); if (!s) return;
+  const art = artURL(s);
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: s.title, artist: s.artist, album: s.album,
+    artwork: art ? [{ src: art, sizes: "512x512", type: s.artBlob.type || "image/jpeg" }] : []
+  });
+  navigator.mediaSession.setActionHandler("play", () => audio.play());
+  navigator.mediaSession.setActionHandler("pause", () => audio.pause());
+  navigator.mediaSession.setActionHandler("previoustrack", prevSong);
+  navigator.mediaSession.setActionHandler("nexttrack", nextSong);
+}
+
+// ---------- sleep timer ----------
+let sleepTick = null;
+function openTimerSheet(){
+  renderTimerSheet();
+  document.getElementById("backdrop").classList.add("open");
+  document.getElementById("sheet-timer").classList.add("open");
+}
+function renderTimerSheet(){
+  const grid = document.getElementById("timer-grid");
+  const opts = [
+    { label: "15 min", m: 15 }, { label: "30 min", m: 30 },
+    { label: "45 min", m: 45 }, { label: "1 hour", m: 60 },
+    { label: "End of song", song: true }, { label: "Off", off: true }
+  ];
+  grid.innerHTML = opts.map((o, i) => {
+    const on = o.off ? (!state.sleep.endAt && !state.sleep.afterSong)
+      : o.song ? state.sleep.afterSong
+      : state.sleep.minutes === o.m && !!state.sleep.endAt;
+    return `<button class="btn ${on ? "on" : ""}" onclick="setSleep(${i})">${o.label}</button>`;
+  }).join("");
+  grid._opts = opts;
+}
+function setSleep(i){
+  const o = document.getElementById("timer-grid")._opts[i];
+  clearInterval(sleepTick); sleepTick = null;
+  if (o.off) { clearSleep(); toast("Sleep timer off"); }
+  else if (o.song) {
+    state.sleep = { minutes: null, endAt: null, afterSong: true };
+    toast("Pausing after this song ☾");
+  } else {
+    state.sleep = { minutes: o.m, endAt: Date.now() + o.m * 60000, afterSong: false };
+    sleepTick = setInterval(checkSleep, 1000);
+    toast("Sleeping in " + o.m + " min ☾");
+  }
+  closeAllSheets(); updateNowUI();
+}
+function clearSleep(){
+  state.sleep = { minutes: null, endAt: null, afterSong: false };
+  clearInterval(sleepTick); sleepTick = null;
+  updateNowUI();
+}
+function checkSleep(){
+  if (state.sleep.endAt && Date.now() >= state.sleep.endAt) {
+    audio.pause(); clearSleep(); toast("Sleep timer — goodnight ☾");
+  } else updateTimerButton();
+}
+function updateTimerButton(){
+  const b = document.getElementById("btn-timer");
+  if (state.sleep.endAt) {
+    const left = Math.max(0, state.sleep.endAt - Date.now());
+    b.textContent = "Timer " + fmt(left / 1000);
+    b.classList.add("on");
+  } else if (state.sleep.afterSong) {
+    b.textContent = "Timer ♪ end"; b.classList.add("on");
+  } else { b.textContent = "Timer ☾"; b.classList.remove("on"); }
+}
+
+// ---------- UI: views ----------
+function showView(v){
+  state.view = v; state.openPlaylistId = null;
+  for (const t of ["library","playlists","about"])
+    document.getElementById("tab-"+t).classList.toggle("on", t === v);
+  renderMain();
+}
+function filteredSongs(){
+  const q = state.search.toLowerCase();
+  if (!q) return [...state.songs];
+  return state.songs.filter((s) => (s.title + " " + s.artist + " " + s.album).toLowerCase().includes(q));
+}
+function songRowHTML(s, ctx){
+  const art = artURL(s);
+  const playing = s.id === state.currentId;
+  return `<div class="row ${playing ? "playing" : ""}" onclick="rowPlay('${s.id}','${ctx}')">
+    ${art ? `<img class="art" src="${art}" alt="">` : `<span class="art">♪</span>`}
+    <div class="meta"><div class="t">${esc(s.title)}</div><div class="s">${esc(s.artist)}${s.album ? " · " + esc(s.album) : ""}</div></div>
+    <button class="more" onclick="event.stopPropagation();openDetails('${s.id}')" aria-label="Song details">⋯</button>
+  </div>`;
+}
+function rowPlay(id, ctx){
+  let ids;
+  if (ctx === "lib") ids = sortSongs(filteredSongs(), state.librarySort).map((s) => s.id);
+  else {
+    const pl = state.playlists.find((p) => p.id === ctx);
+    ids = pl ? sortSongs(pl.songIds.map(songById).filter(Boolean), pl.sort || "custom").map((s) => s.id) : [id];
+  }
+  playSong(id, ids);
+}
+function setLibrarySort(v){ state.librarySort = v; renderMain(); }
+async function setPlaylistSort(pid, v){
+  const p = state.playlists.find((x) => x.id === pid); if (!p) return;
+  p.sort = v; await putPlaylist(p); renderPlaylistDetail();
+}
+function sortSelect(current, handler, withCustom){
+  return `<select class="sortsel" onchange="${handler}(this.value)">
+    ${withCustom ? `<option value="custom" ${current === "custom" ? "selected" : ""}>My order</option>` : ""}
+    <option value="title" ${current === "title" ? "selected" : ""}>A–Z (title)</option>
+    <option value="artist" ${current === "artist" ? "selected" : ""}>Artist</option>
+    <option value="added" ${current === "added" ? "selected" : ""}>Recently added</option>
+  </select>`;
+}
+function renderMain(){
+  const m = document.getElementById("main");
+  if (state.view === "library") {
+    const list = sortSongs(filteredSongs(), state.librarySort);
+    m.innerHTML = `
+      <h1 class="wordmark">Moonside<span class="dot">.</span></h1>
+      <div class="toolbar">
+        <button class="btn primary" onclick="document.getElementById('file-input').click()">＋ Import music</button>
+        ${sortSelect(state.librarySort, "setLibrarySort", false)}
+      </div>
+      <input class="search" placeholder="Search songs, artists, albums…" value="${esc(state.search)}"
+        oninput="state.search=this.value;renderList()">
+      <div id="song-list">${list.length ? list.map((s) => songRowHTML(s, "lib")).join("")
+        : `<div class="empty"><span class="big">☾</span>Your library is empty.<br>Tap <b>Import music</b> and pick songs from the Files app — including a plugged-in USB drive or SSD. They're copied into Moonside, so they keep playing after you unplug.</div>`}</div>`;
+  } else if (state.view === "playlists") {
+    if (state.openPlaylistId) return renderPlaylistDetail();
+    m.innerHTML = `
+      <h1 class="wordmark">Playlists<span class="dot">.</span></h1>
+      <div class="toolbar"><button class="btn primary" onclick="createPlaylist()">＋ New playlist</button></div>
+      ${state.playlists.length ? state.playlists.map((p) => `
+        <div class="pl-card glass" onclick="openPlaylist('${p.id}')">
+          <span class="art" style="width:48px;height:48px;border-radius:12px;background:var(--glass-strong);display:flex;align-items:center;justify-content:center;color:var(--moon)">≣</span>
+          <div style="flex:1"><div class="t">${esc(p.name)}</div><div class="s">${p.songIds.length} song${p.songIds.length === 1 ? "" : "s"}</div></div>
+        </div>`).join("")
+        : `<div class="empty"><span class="big">≣</span>No playlists yet.<br>Make one, then add songs from any song's ⋯ menu.</div>`}`;
+  } else {
+    m.innerHTML = `
+      <h1 class="wordmark">Guide<span class="dot">.</span></h1>
+      <div style="line-height:1.7;font-size:15px;color:var(--text-dim)">
+        <p style="margin-bottom:14px"><b style="color:var(--text)">Import from a USB drive or SSD.</b> Plug the drive into your iPhone or iPad, tap Import music, then Browse → your drive. Songs are copied into Moonside's own storage, so they play with the drive unplugged and no internet.</p>
+        <p style="margin-bottom:14px"><b style="color:var(--text)">Your music survives updates.</b> The library lives in the phone's database, separate from the app files — updating the app on GitHub never removes your songs, lyrics, covers or playlists. Only deleting the app from your Home Screen clears them.</p>
+        <p style="margin-bottom:14px"><b style="color:var(--text)">Artwork.</b> Covers inside MP3/FLAC files appear automatically. For songs without one, open ⋯ → Choose photo.</p>
+        <p style="margin-bottom:14px"><b style="color:var(--text)">Lyrics & translation.</b> Open ⋯ on a song, paste the lyrics, and optionally a translation with matching lines. In Now Playing → Lyrics, each translated line sits under the original.</p>
+        <p style="margin-bottom:14px"><b style="color:var(--text)">Sleep timer.</b> In Now Playing, tap Timer ☾ — 15 minutes to an hour, or let the current song finish.</p>
+        <p><b style="color:var(--text)">Sorting.</b> Use the pill next to Import (and inside each playlist) to sort A–Z, by artist, or recently added. Playlists also keep “My order”.</p>
+      </div>`;
+  }
+}
+function renderList(){
+  const el = document.getElementById("song-list");
+  if (el) el.innerHTML = sortSongs(filteredSongs(), state.librarySort).map((s) => songRowHTML(s, "lib")).join("")
+    || `<div class="empty">No matches.</div>`;
+}
+function openPlaylist(id){ state.openPlaylistId = id; renderPlaylistDetail(); }
+function renderPlaylistDetail(){
+  const p = state.playlists.find((x) => x.id === state.openPlaylistId);
+  if (!p) return showView("playlists");
+  const songs = sortSongs(p.songIds.map(songById).filter(Boolean), p.sort || "custom");
+  document.getElementById("main").innerHTML = `
+    <div class="toolbar"><button class="btn" onclick="showView('playlists')">‹ Playlists</button>
+      <button class="btn" onclick="renamePlaylist('${p.id}')">Rename</button>
+      <button class="btn danger" onclick="removePlaylist('${p.id}')">Delete</button></div>
+    <h1 class="wordmark" style="font-size:28px">${esc(p.name)}</h1>
+    <div class="toolbar"><span class="subhead" style="margin:0">${songs.length} song${songs.length === 1 ? "" : "s"}</span>
+      <span style="flex:1"></span>
+      <select class="sortsel" onchange="setPlaylistSort('${p.id}',this.value)">
+        <option value="custom" ${(p.sort||"custom") === "custom" ? "selected" : ""}>My order</option>
+        <option value="title" ${p.sort === "title" ? "selected" : ""}>A–Z (title)</option>
+        <option value="artist" ${p.sort === "artist" ? "selected" : ""}>Artist</option>
+        <option value="added" ${p.sort === "added" ? "selected" : ""}>Recently added</option>
+      </select></div>
+    ${songs.length ? songs.map((s) => songRowHTML(s, p.id)).join("")
+      : `<div class="empty">Empty playlist — add songs from a song's ⋯ menu.</div>`}`;
+}
+async function createPlaylist(){
+  const name = prompt("Playlist name:"); if (!name) return null;
+  const p = { id: uid(), name: name.trim(), songIds: [], sort: "custom" };
+  state.playlists.push(p); await putPlaylist(p); renderMain(); return p;
+}
+async function renamePlaylist(id){
+  const p = state.playlists.find((x) => x.id === id); if (!p) return;
+  const name = prompt("Rename playlist:", p.name); if (!name) return;
+  p.name = name.trim(); await putPlaylist(p); renderPlaylistDetail();
+}
+async function removePlaylist(id){
+  if (!confirm("Delete this playlist? Songs stay in your library.")) return;
+  state.playlists = state.playlists.filter((p) => p.id !== id);
+  await delPlaylist(id); showView("playlists");
+}
+
+// ---------- now playing UI ----------
+function openNow(){ if (state.currentId) { document.getElementById("now").classList.add("open"); updateNowUI(); } }
+function closeNow(){ document.getElementById("now").classList.remove("open"); closeLyrics(); }
+function updatePlayIcons(){
+  const icon = audio.paused ? "▶" : "⏸";
+  document.getElementById("btn-play").textContent = icon;
+  document.getElementById("mini-play").textContent = icon;
+}
+function updateNowUI(){
+  const s = songById(state.currentId);
+  const mini = document.getElementById("mini");
+  if (!s) { mini.classList.remove("show"); return; }
+  mini.classList.add("show");
+  document.getElementById("mini-t").textContent = s.title;
+  document.getElementById("mini-s").textContent = s.artist;
+  const art = artURL(s);
+  document.getElementById("mini-art-slot").innerHTML = art ? `<img src="${art}" alt="">` : `<span class="noart">♪</span>`;
+  document.getElementById("np-title").textContent = s.title;
+  document.getElementById("np-artist").textContent = s.artist + (s.album ? " — " + s.album : "");
+  document.getElementById("np-art-slot").innerHTML = art ? `<img id="np-art" src="${art}" alt="">` : `<div id="np-noart">♪</div>`;
+  document.getElementById("btn-shuffle").classList.toggle("on", state.shuffle);
+  const rep = document.getElementById("btn-repeat");
+  rep.classList.toggle("on", state.repeat !== "off");
+  rep.textContent = state.repeat === "one" ? "↻¹" : "↻";
+  updatePlayIcons(); updateTimerButton(); renderLyrics();
+}
+
+// ---------- lyrics ----------
+function openLyrics(){ document.getElementById("lyrics-panel").classList.add("open"); renderLyrics(); }
+function closeLyrics(){ document.getElementById("lyrics-panel").classList.remove("open"); }
+function toggleTranslation(){ state.showTrans = !state.showTrans; renderLyrics(); }
+function renderLyrics(){
+  const s = songById(state.currentId);
+  const box = document.getElementById("lyrics-scroll");
+  const tbtn = document.getElementById("btn-trans-toggle");
+  if (!s) { box.innerHTML = ""; return; }
+  const hasTrans = !!(s.trans && s.trans.trim());
+  tbtn.style.display = hasTrans ? "" : "none";
+  tbtn.textContent = state.showTrans ? "Hide translation" : "Show translation";
+  if (!s.lyrics || !s.lyrics.trim()) {
+    box.innerHTML = `<div class="lyr-hint">No lyrics saved for this song yet.<br><br>Tap <b>Edit ✎</b> up top, paste the lyrics (and a translation if you'd like), and they'll appear here — with each translated line under the original.</div>`;
+    return;
+  }
+  const lines = s.lyrics.split(/\r?\n/);
+  const tlines = hasTrans ? s.trans.split(/\r?\n/) : [];
+  box.innerHTML = lines.map((line, i) => `
+    <div class="lyr-pair">
+      <div class="lyr-line">${esc(line) || "&nbsp;"}</div>
+      ${hasTrans && state.showTrans && (tlines[i] || "").trim()
+        ? `<div class="lyr-trans">${esc(tlines[i])}</div>` : ""}
+    </div>`).join("");
+}
+
+// ---------- details sheet ----------
+function openDetails(id){
+  editingId = id;
+  const s = songById(id); if (!s) return;
+  document.getElementById("ed-title").value = s.title;
+  document.getElementById("ed-artist").value = s.artist;
+  document.getElementById("ed-album").value = s.album || "";
+  document.getElementById("ed-lyrics").value = s.lyrics || "";
+  document.getElementById("ed-trans").value = s.trans || "";
+  const art = artURL(s);
+  document.getElementById("ed-art-slot").innerHTML = art ? `<img src="${art}" alt="">` : `<span class="noart">♪</span>`;
+  document.getElementById("backdrop").classList.add("open");
+  document.getElementById("sheet-details").classList.add("open");
+}
+function openDetailsForCurrent(){ if (state.currentId) { closeNow(); openDetails(state.currentId); } }
+document.getElementById("art-input").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f || !editingId) return;
+  const s = songById(editingId);
+  s.artBlob = f;
+  if (artURLCache.has(s.id)) { URL.revokeObjectURL(artURLCache.get(s.id)); artURLCache.delete(s.id); }
+  await putSong(s);
+  document.getElementById("ed-art-slot").innerHTML = `<img src="${artURL(s)}" alt="">`;
+  updateNowUI(); renderMain(); toast("Cover updated");
+  e.target.value = "";
+});
+async function saveDetails(){
+  const s = songById(editingId); if (!s) return;
+  s.title = document.getElementById("ed-title").value.trim() || "Untitled";
+  s.artist = document.getElementById("ed-artist").value.trim() || "Unknown artist";
+  s.album = document.getElementById("ed-album").value.trim();
+  s.lyrics = document.getElementById("ed-lyrics").value;
+  s.trans = document.getElementById("ed-trans").value;
+  await putSong(s);
+  closeAllSheets(); renderMain(); updateNowUI(); toast("Saved");
+}
+async function deleteSong(){
+  if (!editingId || !confirm("Delete this song from Moonside?")) return;
+  const id = editingId;
+  state.songs = state.songs.filter((s) => s.id !== id);
+  for (const p of state.playlists) {
+    if (p.songIds.includes(id)) { p.songIds = p.songIds.filter((x) => x !== id); await putPlaylist(p); }
+  }
+  await delSongRec(id); await delBlob(id);
+  if (state.currentId === id) { audio.pause(); state.currentId = null; document.getElementById("mini").classList.remove("show"); closeNow(); }
+  closeAllSheets(); renderMain(); toast("Song deleted");
+}
+
+// ---------- add to playlist ----------
+let pickSongId = null;
+function openAddToPlaylist(id){
+  if (!id) return;
+  pickSongId = id;
+  const box = document.getElementById("pick-list");
+  box.innerHTML = state.playlists.length ? state.playlists.map((p) => `
+    <div class="row" onclick="addToPlaylist('${p.id}')">
+      <span class="art" style="width:44px;height:44px;color:var(--moon)">≣</span>
+      <div class="meta"><div class="t">${esc(p.name)}</div><div class="s">${p.songIds.length} songs</div></div>
+    </div>`).join("") : `<div class="lyr-hint">No playlists yet — create one below.</div>`;
+  document.getElementById("backdrop").classList.add("open");
+  document.getElementById("sheet-pick").classList.add("open");
+}
+async function addToPlaylist(pid){
+  const p = state.playlists.find((x) => x.id === pid); if (!p || !pickSongId) return;
+  if (!p.songIds.includes(pickSongId)) { p.songIds.push(pickSongId); await putPlaylist(p); toast("Added to " + p.name); }
+  else toast("Already in " + p.name);
+  closeAllSheets(); if (state.view === "playlists") renderMain();
+}
+async function newPlaylistThenAdd(){
+  const p = await createPlaylist();
+  if (p && pickSongId) { p.songIds.push(pickSongId); await putPlaylist(p); toast("Added to " + p.name); }
+  closeAllSheets();
+}
+function closeAllSheets(){
+  document.getElementById("backdrop").classList.remove("open");
+  document.getElementById("sheet-details").classList.remove("open");
+  document.getElementById("sheet-pick").classList.remove("open");
+  document.getElementById("sheet-timer").classList.remove("open");
+}
+function render(){ renderMain(); updateNowUI(); }
+
+// ---------- boot ----------
+(async function init(){
+  db = await openDB();
+  state.songs = await getAll("songs");
+  state.playlists = await getAll("playlists");
+  render();
+  if (navigator.storage && navigator.storage.persist) {
+    try { await navigator.storage.persist(); } catch {}
+  }
+  if ("serviceWorker" in navigator) {
+    try { await navigator.serviceWorker.register("sw.js"); } catch (e) { console.warn(e); }
+  }
+})();
+</script>
+</body>
+</html>
