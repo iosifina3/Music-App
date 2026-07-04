@@ -1,9 +1,9 @@
-// Moonside service worker v2
+// Moonside service worker v3
 // The app shell is cached for full offline use. Page loads try the network
 // first (so app updates from GitHub arrive automatically), then fall back
 // to the cache when offline. Your music lives in IndexedDB and is never
 // touched by this file or by app updates.
-const CACHE = "moonside-v2";
+const CACHE = "moonside-v4";
 const SHELL = [
   "./",
   "./index.html",
@@ -33,7 +33,6 @@ self.addEventListener("fetch", (e) => {
     e.request.mode === "navigate" || e.request.url.endsWith("index.html");
 
   if (isPage) {
-    // Network-first: pick up new versions when online, cached app when offline.
     e.respondWith(
       fetch(e.request)
         .then((res) => {
@@ -44,7 +43,6 @@ self.addEventListener("fetch", (e) => {
         .catch(() => caches.match("./index.html"))
     );
   } else {
-    // Cache-first for icons/manifest.
     e.respondWith(
       caches.match(e.request, { ignoreSearch: true }).then(
         (hit) =>
