@@ -138,7 +138,7 @@ h1.wordmark .dot{color:var(--moon)}
 #now header{display:flex;justify-content:space-between;align-items:center;position:relative}
 #now header button{font-size:15px;color:var(--text-dim);padding:8px;font-weight:600}
 #np-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
-#np-player{display:flex;flex-direction:column;min-height:72vh;padding-bottom:6px}
+#np-player{display:flex;flex-direction:column;min-height:56vh;padding-bottom:6px}
 #np-art-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:12px 0}
 #np-art,#np-noart{width:min(78vw,340px);aspect-ratio:1;border-radius:24px;object-fit:cover;
   border:1px solid var(--glass-edge);box-shadow:var(--spec),0 24px 60px rgba(0,0,0,.55)}
@@ -168,13 +168,22 @@ h1.wordmark .dot{color:var(--moon)}
 #np-extra button .ic svg{width:16px;height:16px}
 #np-extra button.on{color:var(--moon);border-color:var(--moon-soft)}
 
-#np-lyrics-section{padding:18px 4px 60px;border-top:1px solid var(--glass-edge);margin-top:6px}
-#np-lyrics-section .lp-head{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 16px;gap:8px}
-#np-lyrics-section .lp-head .t{font-weight:800;font-size:19px}
+#np-lyrics-section{
+  margin:10px 2px 30px;padding:16px 16px 8px;border-radius:22px;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-edge);box-shadow:var(--spec);
+  display:flex;flex-direction:column;
+  height:38vh;max-height:380px;min-height:230px}
+#np-lyrics-section .lp-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 12px;gap:8px;flex:none}
+#np-lyrics-section .lp-head .t{font-weight:800;font-size:17px}
+#lyrics-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 2px 14px;
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0, black 20px, black calc(100% - 16px), transparent 100%);
+  mask-image:linear-gradient(to bottom, transparent 0, black 20px, black calc(100% - 16px), transparent 100%)}
+.lyr-hint{color:var(--text-dim);font-size:14px;line-height:1.6;padding:20px 12px;text-align:center;
+  min-height:100%;display:flex;align-items:center;justify-content:center}
 .lyr-pair{margin-bottom:22px}
 .lyr-line{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
 .lyr-trans{font-size:15px;color:var(--moon);margin-top:4px;line-height:1.4;font-weight:500}
-.lyr-hint{color:var(--text-dim);font-size:14px;line-height:1.6;padding:20px 4px}
 .lyr-pair.synced{cursor:pointer;opacity:.5;transition:opacity .25s}
 .lyr-pair.synced.active{opacity:1}
 .lyr-pair.synced.active .lyr-line{color:var(--moon)}
@@ -1323,9 +1332,15 @@ function scrollToLyrics(){
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// ---------- lyrics (with optional line-by-line sync), shown inline below the player like Spotify ----------
+// ---------- lyrics (with optional line-by-line sync), shown in a card below the player like Spotify ----------
 let lastActiveLyricIndex = -1;
-let lyricsSectionVisible = false;
+let lyricsUserScrolling = false;
+let lyricsUserScrollTimer = null;
+function markLyricsUserScroll(){
+  lyricsUserScrolling = true;
+  clearTimeout(lyricsUserScrollTimer);
+  lyricsUserScrollTimer = setTimeout(() => { lyricsUserScrolling = false; }, 2500);
+}
 function toggleTranslation(){ state.showTrans = !state.showTrans; renderLyrics(); }
 function renderLyrics(){
   if (syncState) return;
@@ -1349,6 +1364,7 @@ function renderLyrics(){
       <div class="lyr-line">${esc(line) || "&nbsp;"}</div>
       ${hasTrans && state.showTrans && (tlines[i] || "").trim() ? `<div class="lyr-trans">${esc(tlines[i])}</div>` : ""}
     </div>`).join("");
+  box.scrollTop = 0;
   updateLyricHighlight();
 }
 function seekToLyricLine(i){
@@ -1369,10 +1385,13 @@ function updateLyricHighlight(){
   lastActiveLyricIndex = active;
   const pairs = box.querySelectorAll(".lyr-pair");
   pairs.forEach((el, i) => el.classList.toggle("active", i === active));
-  // Only auto-scroll if you're already looking at the lyrics — otherwise this
-  // would yank you down to lyrics every few seconds while browsing elsewhere.
-  if (active >= 0 && pairs[active] && lyricsSectionVisible) {
-    pairs[active].scrollIntoView({ block: "center", behavior: "smooth" });
+  // Auto-scroll the lyrics card itself (not the whole page) so the current
+  // line sits near the top of the box, leaving the next couple of lines
+  // visible underneath — like Spotify. Pauses briefly if you're scrolling
+  // the card yourself, so it never fights your finger.
+  if (active >= 0 && pairs[active] && !lyricsUserScrolling) {
+    const target = pairs[active].offsetTop - box.clientHeight * 0.3;
+    box.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
   }
 }
 
@@ -1663,23 +1682,18 @@ function initStaticIcons(){
   document.getElementById("ico-tab-settings").innerHTML = ic("gear");
 }
 
-// ---------- track whether the lyrics section is actually in view ----------
-// (so synced auto-scroll only kicks in once you've scrolled down to it —
-// otherwise it would yank you there uninvited while you're still up top)
-function setupLyricsVisibilityTracking(){
-  const section = document.getElementById("np-lyrics-section");
-  const root = document.getElementById("np-body");
-  if (!section || !root || !("IntersectionObserver" in window)) return;
-  const observer = new IntersectionObserver((entries) => {
-    lyricsSectionVisible = entries[0].isIntersecting;
-  }, { root, threshold: 0.15 });
-  observer.observe(section);
+// ---------- pause auto-scroll briefly while you're scrolling the lyrics card yourself ----------
+function setupLyricsScrollTracking(){
+  const box = document.getElementById("lyrics-scroll");
+  if (!box) return;
+  box.addEventListener("touchstart", markLyricsUserScroll, { passive: true });
+  box.addEventListener("wheel", markLyricsUserScroll, { passive: true });
 }
 
 // ---------- boot ----------
 (async function init(){
   initStaticIcons();
-  setupLyricsVisibilityTracking();
+  setupLyricsScrollTracking();
   db = await openDB();
   state.songs = await getAll("songs");
   state.playlists = await getAll("playlists");

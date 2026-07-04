@@ -24,17 +24,11 @@ they live in your phone's own database, completely separate from these files.
 5. Open that link in **Safari** on your iPhone → Share → **Add to Home Screen**.
 
 ## What's new in this version
-- **Lyrics now live inline, Spotify-style** — no more separate pop-up. Open
-  Now Playing and scroll down past the controls to reveal the lyrics right
-  there on the same screen (or tap the **Lyrics** button to jump straight
-  down to them).
-- **Fixed a couple of lyrics glitches**: synced lyrics were re-triggering
-  their auto-scroll several times a second (which felt jittery/fighting your
-  own scrolling), and the whole lyrics list was rebuilding — resetting your
-  scroll position — every time you tapped something unrelated like shuffle
-  or repeat. Both are fixed: the highlighted line only moves when it
-  actually changes, auto-scroll only happens once you've scrolled down to
-  lyrics yourself, and the list only rebuilds when the song changes.
+- **Lyrics now sit in their own card**, Spotify-style — visible right on the
+  Now Playing screen, no pop-up. Synced lyrics auto-scroll gently within the
+  card, keeping the current line near the top with the next couple of lines
+  visible underneath. Scroll the card yourself any time to browse ahead or
+  back — it'll pause auto-scrolling for a couple of seconds while you do.
 - **.lrc file support** — if your songs came with a matching `.lrc` file
   (same filename, different ending), select it alongside the song when you
   Import, and its synced lyrics attach automatically — no manual tapping
@@ -68,9 +62,8 @@ they live in your phone's own database, completely separate from these files.
 - **Artwork**: covers inside MP3/FLAC files show automatically; add your own
   photo via ⋯ on any song.
 - **Lyrics & translation**: ⋯ on a song → paste lyrics, plus an optional
-  translation with matching lines. In Now Playing, scroll down past the
-  controls to see them, with translated lines sitting under the originals
-  and a show/hide toggle.
+  translation with matching lines. They show in their own card on Now
+  Playing, with translated lines under the originals and a show/hide toggle.
 - **Sleep timer**: Now Playing → Timer ☾ — 15/30/45/60 minutes, or "End of song".
 - **Backup & restore**: Settings tab → Create backup saves a small file (to
   Files/iCloud) with your lyrics, translations, synced timing, artwork,
