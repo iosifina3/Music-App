@@ -176,9 +176,7 @@ h1.wordmark .dot{color:var(--moon)}
   height:38vh;max-height:380px;min-height:230px}
 #np-lyrics-section .lp-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 12px;gap:8px;flex:none}
 #np-lyrics-section .lp-head .t{font-weight:800;font-size:17px}
-#lyrics-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 2px 14px;
-  -webkit-mask-image:linear-gradient(to bottom, transparent 0, black 20px, black calc(100% - 16px), transparent 100%);
-  mask-image:linear-gradient(to bottom, transparent 0, black 20px, black calc(100% - 16px), transparent 100%)}
+#lyrics-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 2px 14px}
 .lyr-hint{color:var(--text-dim);font-size:14px;line-height:1.6;padding:20px 12px;text-align:center;
   min-height:100%;display:flex;align-items:center;justify-content:center}
 .lyr-pair{margin-bottom:22px}
@@ -1390,8 +1388,12 @@ function updateLyricHighlight(){
   // visible underneath — like Spotify. Pauses briefly if you're scrolling
   // the card yourself, so it never fights your finger.
   if (active >= 0 && pairs[active] && !lyricsUserScrolling) {
-    const target = pairs[active].offsetTop - box.clientHeight * 0.3;
-    box.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    const target = Math.max(0, pairs[active].offsetTop - box.clientHeight * 0.3);
+    if (typeof box.scrollTo === "function") {
+      box.scrollTo({ top: target, behavior: "smooth" });
+    } else {
+      box.scrollTop = target;
+    }
   }
 }
 
