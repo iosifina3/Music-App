@@ -137,7 +137,8 @@ h1.wordmark .dot{color:var(--moon)}
   background:radial-gradient(circle,rgba(155,168,255,.20) 0%,transparent 60%);pointer-events:none;filter:blur(24px)}
 #now header{display:flex;justify-content:space-between;align-items:center;position:relative}
 #now header button{font-size:15px;color:var(--text-dim);padding:8px;font-weight:600}
-#np-body{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+#np-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
+#np-player{display:flex;flex-direction:column;min-height:72vh;padding-bottom:6px}
 #np-art-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:12px 0}
 #np-art,#np-noart{width:min(78vw,340px);aspect-ratio:1;border-radius:24px;object-fit:cover;
   border:1px solid var(--glass-edge);box-shadow:var(--spec),0 24px 60px rgba(0,0,0,.55)}
@@ -167,14 +168,9 @@ h1.wordmark .dot{color:var(--moon)}
 #np-extra button .ic svg{width:16px;height:16px}
 #np-extra button.on{color:var(--moon);border-color:var(--moon-soft)}
 
-#lyrics-panel{position:absolute;inset:0;border-radius:22px 22px 0 0;
-  background:rgba(12,14,22,.78);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  border:1px solid var(--glass-edge);box-shadow:var(--spec);
-  transform:translateY(102%);transition:transform .3s ease;display:flex;flex-direction:column}
-#lyrics-panel.open{transform:translateY(0)}
-#lyrics-panel .lp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 12px;gap:8px;flex-wrap:wrap}
-#lyrics-panel .lp-head .t{font-weight:800;font-size:17px}
-#lyrics-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px 40px}
+#np-lyrics-section{padding:18px 4px 60px;border-top:1px solid var(--glass-edge);margin-top:6px}
+#np-lyrics-section .lp-head{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 16px;gap:8px}
+#np-lyrics-section .lp-head .t{font-weight:800;font-size:19px}
 .lyr-pair{margin-bottom:22px}
 .lyr-line{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
 .lyr-trans{font-size:15px;color:var(--moon);margin-top:4px;line-height:1.4;font-weight:500}
@@ -249,35 +245,34 @@ h1.wordmark .dot{color:var(--moon)}
     <button onclick="openDetailsForCurrent()">Edit ✎</button>
   </header>
   <div id="np-body">
-    <div id="np-art-wrap"><span id="np-art-slot"><div id="np-noart">♪</div></span></div>
-    <div id="np-title">—</div>
-    <div id="np-artist">—</div>
-    <div id="seek-wrap">
-      <div id="loop-range"></div>
-      <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Seek">
+    <div id="np-player">
+      <div id="np-art-wrap"><span id="np-art-slot"><div id="np-noart">♪</div></span></div>
+      <div id="np-title">—</div>
+      <div id="np-artist">—</div>
+      <div id="seek-wrap">
+        <div id="loop-range"></div>
+        <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Seek">
+      </div>
+      <div class="times"><span id="t-cur">0:00</span><span id="t-dur">0:00</span></div>
+      <div class="controls">
+        <button class="side" id="btn-shuffle" onclick="toggleShuffle()" aria-label="Shuffle"></button>
+        <button id="btn-prev" onclick="prevSong()" aria-label="Previous"></button>
+        <button class="play" id="btn-play" onclick="togglePlay()" aria-label="Play or pause"></button>
+        <button id="btn-next" onclick="nextSong()" aria-label="Next"></button>
+        <button class="side" id="btn-repeat" onclick="cycleRepeat()" aria-label="Repeat"></button>
+      </div>
+      <div id="np-extra">
+        <button id="btn-lyrics" onclick="scrollToLyrics()"><span class="ic" id="ic-lyrics"></span><span class="btn-label">Lyrics</span></button>
+        <button id="btn-loop" onclick="cycleLoopSection()"><span class="ic" id="ic-loop"></span><span class="btn-label">Loop</span></button>
+        <button id="btn-timer" onclick="openTimerSheet()"><span class="ic" id="ic-timer"></span><span class="btn-label">Timer ☾</span></button>
+        <button id="btn-queue" onclick="openQueueSheet()"><span class="ic" id="ic-queue"></span><span class="btn-label">Queue</span></button>
+        <button id="btn-addplaylist" onclick="openAddToPlaylist(state.currentId)"><span class="ic" id="ic-addplaylist"></span><span class="btn-label">Playlist</span></button>
+      </div>
     </div>
-    <div class="times"><span id="t-cur">0:00</span><span id="t-dur">0:00</span></div>
-    <div class="controls">
-      <button class="side" id="btn-shuffle" onclick="toggleShuffle()" aria-label="Shuffle"></button>
-      <button id="btn-prev" onclick="prevSong()" aria-label="Previous"></button>
-      <button class="play" id="btn-play" onclick="togglePlay()" aria-label="Play or pause"></button>
-      <button id="btn-next" onclick="nextSong()" aria-label="Next"></button>
-      <button class="side" id="btn-repeat" onclick="cycleRepeat()" aria-label="Repeat"></button>
-    </div>
-    <div id="np-extra">
-      <button id="btn-lyrics" onclick="openLyrics()"><span class="ic" id="ic-lyrics"></span><span class="btn-label">Lyrics</span></button>
-      <button id="btn-loop" onclick="cycleLoopSection()"><span class="ic" id="ic-loop"></span><span class="btn-label">Loop</span></button>
-      <button id="btn-timer" onclick="openTimerSheet()"><span class="ic" id="ic-timer"></span><span class="btn-label">Timer ☾</span></button>
-      <button id="btn-queue" onclick="openQueueSheet()"><span class="ic" id="ic-queue"></span><span class="btn-label">Queue</span></button>
-      <button id="btn-addplaylist" onclick="openAddToPlaylist(state.currentId)"><span class="ic" id="ic-addplaylist"></span><span class="btn-label">Playlist</span></button>
-    </div>
-    <div id="lyrics-panel">
+    <div id="np-lyrics-section">
       <div class="lp-head">
         <span class="t">Lyrics</span>
-        <span>
-          <button class="btn" id="btn-trans-toggle" onclick="toggleTranslation()">Show translation</button>
-          <button class="btn" onclick="closeLyrics()">Close</button>
-        </span>
+        <button class="btn" id="btn-trans-toggle" onclick="toggleTranslation()">Show translation</button>
       </div>
       <div id="lyrics-scroll"></div>
     </div>
@@ -1290,12 +1285,13 @@ function renderSettingsView(){
 
 // ---------- now playing UI ----------
 function openNow(){ if (state.currentId) { document.getElementById("now").classList.add("open"); updateNowUI(); } }
-function closeNow(){ document.getElementById("now").classList.remove("open"); closeLyrics(); }
+function closeNow(){ document.getElementById("now").classList.remove("open"); if (syncState) cancelSync(); }
 function updatePlayIcons(){
   const svg = audio.paused ? ic("play") : ic("pause");
   document.getElementById("btn-play").innerHTML = svg;
   document.getElementById("mini-play").innerHTML = svg;
 }
+let lastLyricsSongId = undefined;
 function updateNowUI(){
   const s = songById(state.currentId);
   const mini = document.getElementById("mini");
@@ -1311,15 +1307,29 @@ function updateNowUI(){
   document.getElementById("btn-shuffle").classList.toggle("on", state.shuffle);
   document.getElementById("btn-repeat").classList.toggle("on", state.repeat !== "off");
   document.getElementById("btn-repeat").innerHTML = state.repeat === "one" ? ic("repeatone") : ic("repeat");
-  updatePlayIcons(); updateTimerButton(); updateLoopUI(); renderLyrics();
+  updatePlayIcons(); updateTimerButton(); updateLoopUI();
+  // Only rebuild the lyrics list when the song actually changes — rebuilding
+  // on every little UI update (like tapping shuffle) was resetting your
+  // scroll position back to the top while reading. Bug fix.
+  if (state.currentId !== lastLyricsSongId) {
+    lastLyricsSongId = state.currentId;
+    const body = document.getElementById("np-body");
+    if (body) body.scrollTop = 0;
+    renderLyrics();
+  }
+}
+function scrollToLyrics(){
+  const el = document.getElementById("np-lyrics-section");
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// ---------- lyrics (with optional line-by-line sync) ----------
-function openLyrics(){ document.getElementById("lyrics-panel").classList.add("open"); renderLyrics(); }
-function closeLyrics(){ document.getElementById("lyrics-panel").classList.remove("open"); if (syncState) cancelSync(); }
+// ---------- lyrics (with optional line-by-line sync), shown inline below the player like Spotify ----------
+let lastActiveLyricIndex = -1;
+let lyricsSectionVisible = false;
 function toggleTranslation(){ state.showTrans = !state.showTrans; renderLyrics(); }
 function renderLyrics(){
   if (syncState) return;
+  lastActiveLyricIndex = -1;
   const s = songById(state.currentId);
   const box = document.getElementById("lyrics-scroll");
   const tbtn = document.getElementById("btn-trans-toggle");
@@ -1349,16 +1359,21 @@ function seekToLyricLine(i){
 function updateLyricHighlight(){
   if (syncState) return;
   const s = songById(state.currentId);
-  if (!s || !s.syncTimes || !document.getElementById("lyrics-panel").classList.contains("open")) return;
+  const box = document.getElementById("lyrics-scroll");
+  if (!s || !box || !s.syncTimes) return;
   const lines = (s.lyrics || "").split(/\r?\n/);
   if (s.syncTimes.length !== lines.length) return;
   let active = -1;
   for (let i = 0; i < s.syncTimes.length; i++) { if (audio.currentTime >= s.syncTimes[i]) active = i; else break; }
-  const box = document.getElementById("lyrics-scroll");
-  if (!box) return;
+  if (active === lastActiveLyricIndex) return; // bug fix: only touch the DOM when the line actually changes
+  lastActiveLyricIndex = active;
   const pairs = box.querySelectorAll(".lyr-pair");
   pairs.forEach((el, i) => el.classList.toggle("active", i === active));
-  if (active >= 0 && pairs[active]) pairs[active].scrollIntoView({ block: "center", behavior: "smooth" });
+  // Only auto-scroll if you're already looking at the lyrics — otherwise this
+  // would yank you down to lyrics every few seconds while browsing elsewhere.
+  if (active >= 0 && pairs[active] && lyricsSectionVisible) {
+    pairs[active].scrollIntoView({ block: "center", behavior: "smooth" });
+  }
 }
 
 // ---------- lyric sync tool (tap-along, like a karaoke stopwatch) ----------
@@ -1372,7 +1387,7 @@ function startSync(id){
   syncState = { songId: id, lines, times: [], index: 0 };
   closeAllSheets();
   if (state.currentId !== id) { playSong(id, [id]); } else { audio.currentTime = 0; if (audio.paused) audio.play(); }
-  openNow(); openLyrics();
+  openNow(); scrollToLyrics();
   renderSyncUI();
 }
 function renderSyncUI(){
@@ -1461,7 +1476,9 @@ async function saveDetails(){
   s.lyrics = newLyrics;
   s.trans = document.getElementById("ed-trans").value;
   await putSong(s);
-  closeAllSheets(); renderMain(); updateNowUI(); toast("Saved");
+  closeAllSheets(); renderMain(); updateNowUI();
+  if (state.currentId === s.id) renderLyrics();
+  toast("Saved");
 }
 async function deleteSong(){
   if (!editingId || !confirm("Delete this song from Moonside?")) return;
@@ -1646,9 +1663,23 @@ function initStaticIcons(){
   document.getElementById("ico-tab-settings").innerHTML = ic("gear");
 }
 
+// ---------- track whether the lyrics section is actually in view ----------
+// (so synced auto-scroll only kicks in once you've scrolled down to it —
+// otherwise it would yank you there uninvited while you're still up top)
+function setupLyricsVisibilityTracking(){
+  const section = document.getElementById("np-lyrics-section");
+  const root = document.getElementById("np-body");
+  if (!section || !root || !("IntersectionObserver" in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    lyricsSectionVisible = entries[0].isIntersecting;
+  }, { root, threshold: 0.15 });
+  observer.observe(section);
+}
+
 // ---------- boot ----------
 (async function init(){
   initStaticIcons();
+  setupLyricsVisibilityTracking();
   db = await openDB();
   state.songs = await getAll("songs");
   state.playlists = await getAll("playlists");
@@ -1665,5 +1696,6 @@ function initStaticIcons(){
 </script>
 </body>
 </html>
+
 
 
