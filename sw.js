@@ -3,7 +3,7 @@
 // first (so app updates from GitHub arrive automatically), then fall back
 // to the cache when offline. Your music lives in IndexedDB and is never
 // touched by this file or by app updates.
-const CACHE = "moonside-v7";
+const CACHE = "moonside-v8";
 const SHELL = [
   "./",
   "./index.html",

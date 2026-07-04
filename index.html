@@ -474,6 +474,7 @@ audio.preload = "auto";
 let currentURL = null;
 let editingId = null;
 let pendingSyncTimes = null;
+let lyricsFieldEdited = false;
 let pickIds = [];
 let folderPickPid = null;
 let syncState = null;
@@ -1457,6 +1458,7 @@ function cancelSync(){
 function openDetails(id){
   editingId = id;
   pendingSyncTimes = null;
+  lyricsFieldEdited = false;
   const s = songById(id); if (!s) return;
   document.getElementById("ed-title").value = s.title;
   document.getElementById("ed-year").value = s.year || "";
@@ -1470,6 +1472,7 @@ function openDetails(id){
   document.getElementById("sheet-details").classList.add("open");
 }
 function openDetailsForCurrent(){ if (state.currentId) { closeNow(); openDetails(state.currentId); } }
+document.getElementById("ed-lyrics").addEventListener("input", () => { lyricsFieldEdited = true; });
 document.getElementById("art-input").addEventListener("change", async (e) => {
   const f = e.target.files[0]; if (!f || !editingId) return;
   const s = songById(editingId);
@@ -1486,10 +1489,11 @@ async function saveDetails(){
   const newLines = newLyrics.split(/\r?\n/);
   if (pendingSyncTimes && pendingSyncTimes.length === newLines.length) {
     s.syncTimes = pendingSyncTimes;
-  } else if (s.syncTimes && newLyrics !== s.lyrics) {
+  } else if (s.syncTimes && lyricsFieldEdited) {
     s.syncTimes = null;
   }
   pendingSyncTimes = null;
+  lyricsFieldEdited = false;
   s.title = document.getElementById("ed-title").value.trim() || "Untitled";
   s.year = document.getElementById("ed-year").value.trim().replace(/[^\d]/g, "").slice(0, 4);
   s.artist = document.getElementById("ed-artist").value.trim() || "Unknown artist";
